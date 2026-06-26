@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rafz'666</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080808;--s2:#141414;--border:#282828;
+  --text:#f0f0f0;--muted:#707070;--muted2:#333;
+  --ac:#e8ff5a;--ac2:#a78bfa;--glow:rgba(232,255,90,0.2);
+  --font-head:'Orbitron',sans-serif;
+  --font-body:'Outfit',sans-serif;
+  --font-mono:'Space Grotesk',sans-serif;
+}
+html,body{min-height:100vh;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px}
+
+/* ══ BG LAYERS ══ */
+#bgPhoto{
+  position:fixed;inset:0;z-index:0;
+  background-size:cover;background-position:center top;background-repeat:no-repeat;
+  opacity:0;transition:opacity 1.4s ease;transform:scale(1.06);will-change:transform;
+}
+#bgPhoto.visible{opacity:1}
+#bgBlur{
+  position:fixed;inset:0;z-index:1;
+  backdrop-filter:blur(52px) saturate(0.5) brightness(0.25);
+  -webkit-backdrop-filter:blur(52px) saturate(0.5) brightness(0.25);
+  background:rgba(0,0,0,0.5);
+}
+#bgGradient{
+  position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(to bottom,
+    rgba(0,0,0,0.08) 0%,transparent 30%,transparent 52%,
+    rgba(8,8,8,0.65) 70%,rgba(8,8,8,0.95) 84%,#080808 100%);
+}
+/* Stars + Wave share same canvas */
+#bgCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+#grain{
+  position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0.16;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+
+/* ══ APP ══ */
+.app{position:relative;z-index:5;max-width:1020px;margin:0 auto;padding:2rem 1.5rem 3rem}
+
+/* ══ HEADER ══ */
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem;animation:fadeDown 0.7s ease both}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+.brand{font-family:var(--font-head);font-size:1.5rem;font-weight:900;letter-spacing:0.1em;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.8)}
+.brand em{color:var(--ac);font-style:normal;transition:color 0.8s}
+.header-right{font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.14em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.hdr-dot{width:6px;height:6px;border-radius:50%;background:var(--ac);transition:background 0.8s;animation:hpulse 2s infinite}
+@keyframes hpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.65)}}
+
+/* ══ LAYOUT ══ */
+.main-layout{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start}
+@media(max-width:720px){.main-layout{grid-template-columns:1fr}}
+
+/* ══ PLAYER CARD ══ */
+.player-card{
+  background:rgba(10,10,10,0.58);border:1px solid rgba(255,255,255,0.09);
+  border-radius:24px;padding:1.75rem;
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  position:relative;overflow:hidden;
+  animation:fadeUp 0.7s 0.1s ease both;
+  transition:box-shadow 0.8s,border-color 0.8s;
+  box-shadow:0 8px 40px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.player-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,transparent 55%);pointer-events:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+/* Album art */
+.album-art{
+  width:155px;height:155px;border-radius:16px;margin:0 auto 1.25rem;
+  position:relative;overflow:hidden;background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);transition:box-shadow 0.8s,border-color 0.8s;
+}
+.album-art.has-photo{box-shadow:0 8px 40px var(--glow),0 0 0 1px rgba(255,255,255,0.12)}
+.album-art img{width:100%;height:100%;object-fit:cover;object-position:top center;position:absolute;inset:0;opacity:0;transition:opacity 0.6s ease}
+.album-art img.loaded{opacity:1}
+.art-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity 0.4s}
+.art-placeholder svg{width:38px;height:38px;color:rgba(255,255,255,0.15)}
+.ring{position:absolute;inset:-3px;border-radius:19px;background:conic-gradient(var(--ac),var(--ac2),#ff6b9d,var(--ac));opacity:0;z-index:-1;animation:spinring 4s linear infinite;transition:opacity 0.5s}
+.album-art.playing .ring{opacity:0.7}
+@keyframes spinring{to{transform:rotate(360deg)}}
+
+/* NP info */
+.np-badge{font-family:var(--font-mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ac);transition:color 0.8s;display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--ac);transition:background 0.8s;animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.1}}
+.np-title{font-family:var(--font-head);font-size:1rem;font-weight:700;letter-spacing:0.06em;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-artist{font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-bottom:1.1rem}
+
+/* Progress */
+.time-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-bottom:5px}
+.progress-track{height:4px;background:rgba(255,255,255,0.1);border-radius:4px;cursor:pointer;position:relative;margin-bottom:1.1rem;transition:height 0.15s}
+.progress-track:hover{height:6px}
+.progress-fill{height:100%;border-radius:4px;background:var(--ac);width:0%;pointer-events:none;position:relative;transition:background 0.8s;box-shadow:0 0 10px var(--glow)}
+.progress-fill::after{content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:var(--ac);opacity:0;transition:opacity 0.15s,background 0.8s}
+.progress-track:hover .progress-fill::after{opacity:1}
+
+/* Controls */
+.controls{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:1rem}
+.ctrl-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0}
+.ctrl-btn:hover{border-color:var(--ac);color:var(--ac);transform:scale(1.1);box-shadow:0 0 12px var(--glow)}
+.ctrl-btn.on{border-color:var(--ac);color:var(--ac);box-shadow:0 0 10px var(--glow)}
+.ctrl-btn svg{width:15px;height:15px}
+.play-btn{width:52px;height:52px;background:var(--ac);color:#000;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform 0.2s,background 0.8s,box-shadow 0.8s;box-shadow:0 4px 24px var(--glow)}
+.play-btn:hover{transform:scale(1.1)}
+.play-btn:active{transform:scale(0.94)}
+.play-btn svg{width:22px;height:22px}
+.vol-wrap{display:flex;align-items:center;gap:8px}
+.vol-wrap svg{width:14px;height:14px;color:var(--muted);flex-shrink:0}
+.vol-slider{-webkit-appearance:none;appearance:none;flex:1;height:3px;border-radius:3px;background:linear-gradient(to right,var(--ac2) 80%,rgba(255,255,255,0.1) 80%);outline:none;cursor:pointer;transition:background 0.8s}
+.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--ac2);cursor:pointer}
+
+.lyrics-card{
+  background:rgba(8,8,8,0.58);border:1px solid rgba(255,255,255,0.08);
+  border-radius:24px;backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  position:sticky;top:1.5rem;overflow:hidden;
+  animation:fadeUp 0.7s 0.2s ease both;
+  box-shadow:0 8px 40px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.lyrics-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem 0.75rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+.lyrics-title{font-family:var(--font-head);font-size:0.7rem;letter-spacing:0.22em;color:rgba(255,255,255,0.35);text-transform:uppercase}
+.lyrics-status{font-family:var(--font-mono);font-size:10px;color:var(--muted2);background:rgba(255,255,255,0.06);padding:2px 10px;border-radius:20px;transition:color 0.3s}
+.lyrics-status.found{color:var(--ac)}
+.lyrics-scroll{
+  height:430px;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.08) transparent;
+  mask-image:linear-gradient(to bottom,transparent 0%,black 10%,black 88%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 10%,black 88%,transparent 100%);
+}
+.lyrics-scroll::-webkit-scrollbar{width:2px}
+.lyrics-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08)}
+.lyrics-inner{padding:1.5rem 1.25rem 2.5rem}
+
+.lyric-line{font-family:var(--font-body);font-size:14px;font-weight:600;line-height:1.55;padding:8px 6px;color:rgba(255,255,255,0.13);cursor:pointer;text-align:center;border-radius:8px;user-select:none;transition:color .45s ease,font-size .35s ease,transform .35s ease,text-shadow .45s ease,filter .35s ease;transform:scale(0.93);transform-origin:center;filter:blur(1.2px)}
+.lyric-line:hover{color:rgba(255,255,255,0.4);filter:blur(0)}
+.lyric-line.past{color:rgba(255,255,255,0.2);filter:blur(0.4px);transform:scale(0.95)}
+.lyric-line.near{color:rgba(255,255,255,0.42);filter:blur(0);transform:scale(0.97)}
+.lyric-line.active{color:#fff;font-size:16px;font-weight:700;transform:scale(1.05);filter:blur(0);text-shadow:0 0 22px var(--ac),0 0 50px rgba(255,255,255,0.15);letter-spacing:0.01em}
+.lyrics-empty,.lyrics-loading{text-align:center;padding:4rem 1.5rem;color:var(--muted);font-size:13px;line-height:1.9}
+.lyrics-empty svg{width:30px;height:30px;margin:0 auto 10px;display:block;opacity:0.18}
+.spinner{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--ac);animation:spin 0.8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.playlist-section{margin-top:1.5rem;animation:fadeUp 0.7s 0.3s ease both}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;padding:0 4px}
+.section-title{font-family:var(--font-head);font-size:9px;letter-spacing:0.22em;color:rgba(255,255,255,0.3);text-transform:uppercase}
+.track-count{font-family:var(--font-mono);font-size:11px;color:var(--muted2)}
+.track-row{display:grid;grid-template-columns:26px 38px 1fr auto;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:background 0.15s,border-color 0.15s,transform 0.18s;position:relative;overflow:hidden}
+.track-row::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 50%,transparent 100%);transform:translateX(-100%);transition:transform 0.5s ease;pointer-events:none}
+.track-row:hover::before{transform:translateX(100%)}
+.track-row:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.08);transform:translateX(4px)}
+.track-row.playing{background:rgba(var(--ac-rgb,232,255,90),0.07);border-color:rgba(var(--ac-rgb,232,255,90),0.2)}
+.track-num{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-align:center;display:flex;align-items:center;justify-content:center}
+.track-row.playing .track-num{color:var(--ac)}
+.track-thumb-mini{width:36px;height:36px;border-radius:6px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative;flex-shrink:0;border:1px solid rgba(255,255,255,0.08)}
+.track-thumb-mini img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.no-thumb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.no-thumb svg{width:14px;height:14px;color:var(--muted2)}
+.track-info{min-width:0}
+.t-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color 0.3s}
+.track-row.playing .t-name{color:var(--ac)}
+.t-artist{font-size:11px;color:var(--muted);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-dur{font-size:11px;color:var(--muted);font-family:var(--font-mono);white-space:nowrap}
+.eq-anim{display:flex;gap:2px;align-items:flex-end;height:14px}
+.eq-b{width:3px;border-radius:2px;background:var(--ac);animation:eqa 0.5s infinite alternate;transition:background 0.8s}
+.eq-b:nth-child(2){animation-delay:.15s;animation-duration:.4s}
+.eq-b:nth-child(3){animation-delay:.3s;animation-duration:.6s}
+@keyframes eqa{from{height:3px}to{height:13px}}
+@keyframes flashIn{0%{opacity:0;transform:translateY(5px)}100%{opacity:1;transform:none}}
+.flash{animation:flashIn 0.35s ease both}
+</style>
+</head>
+<body>
+
+<div id="bgPhoto"></div>
+<div id="bgBlur"></div>
+<div id="bgGradient"></div>
+<canvas id="bgCanvas"></canvas>
+<div id="grain"></div>
+
+<div class="app">
+  <header>
+    <div class="brand">RAFZ<em>'666</em></div>
+    <div class="header-right"><span class="hdr-dot"></span>personal playlist</div>
+  </header>
+
+  <div class="main-layout">
+    <div>
+      <div class="player-card">
+        <div class="album-art" id="albumArt">
+          <div class="ring"></div>
+          <div class="art-placeholder" id="artPlaceholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <img id="artImg" src="" alt="">
+        </div>
+        <div class="np-badge"><span class="live-dot"></span>Now Playing</div>
+        <div class="np-title" id="npTitle">—</div>
+        <div class="np-artist" id="npArtist">—</div>
+        <div class="time-row"><span id="curTime">0:00</span><span id="totTime">0:00</span></div>
+        <div class="progress-track" id="progressTrack"><div class="progress-fill" id="progFill"></div></div>
+        <div class="controls">
+          <button class="ctrl-btn" id="shuffleBtn" onclick="toggleShuffle()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20l16-16M16 20h5v-5M4 4l16 16"/></svg>
+          </button>
+          <button class="ctrl-btn" onclick="prevTrack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20L9 12l10-8v16zM5 4v16"/></svg>
+          </button>
+          <button class="play-btn" onclick="togglePlay()" id="playBtn">
+            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="ctrl-btn" onclick="nextTrack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l10 8-10 8V4zM19 4v16"/></svg>
+          </button>
+          <button class="ctrl-btn" id="loopBtn" onclick="toggleLoop()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </button>
+        </div>
+        <div class="vol-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <input type="range" class="vol-slider" id="volSlider" min="0" max="100" value="80">
+        </div>
+      </div>
+
+      <div class="playlist-section">
+        <div class="section-header">
+          <span class="section-title">Playlist</span>
+          <span class="track-count" id="trackCount">0 lagu</span>
+        </div>
+        <div id="playlistEl"></div>
+      </div>
+    </div>
+
+    <div class="lyrics-card">
+      <div class="lyrics-header">
+        <div class="lyrics-title">Lyrics</div>
+        <div class="lyrics-status" id="lyricsSrc">—</div>
+      </div>
+      <div class="lyrics-scroll" id="lyricsScroll">
+        <div class="lyrics-inner" id="lyricsInner">
+          <div class="lyrics-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Pilih lagu untuk<br>menampilkan lirik
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="audioEl"></audio>
+
+<script>
+
+const tracks = [
+  { title:"Say Yes to Heaven", artist:"Lana Del Rey",      file:"music/say-yes-to-heaven.mp3",  photo:"photo/lana-del-rey.jpg",        color:"#c8b4ff" },
+  { title:"The Visitor",       artist:"Sienna Spiro",      file:"music/the-visitor.mp3",         photo:"photo/sienna-spiro.jpg",        color:"#ffb3d1" },
+  { title:"bye",               artist:"Ariana Grande",     file:"music/bye.mp3",                 photo:"photo/ariana-grande.jpg",       color:"#ffe4a0" },
+  { title:"Love Me Not",       artist:"Ravyn Lenae",       file:"music/love-me-not.mp3",         photo:"photo/ravyn-lenae.jpg",         color:"#a0f4e0" },
+  { title:"Habits",            artist:"Tove Lo",           file:"music/habits.mp3",              photo:"photo/tove-lo.jpg",                        color:"#ff9eb5" },
+  { title:"Mirrors",           artist:"Justin Timberlake", file:"music/mirrors.mp3",             photo:"photo/justine-timberlake.jpg",  color:"#93c5fd" },
+  { title:"Let Me Love You",   artist:"Justin Bieber",     file:"music/let-me-love-you.mp3",     photo:"photo/justin-bieber.jpg",       color:"#86efac" },
+  { title:"No Pole",           artist:"Don Toliver",       file:"music/no-pole.mp3",             photo:"photo/don-toliver.jpg",         color:"#fdba74" },
+  { title:"Sweater Weather",   artist:"The Neighbourhood", file:"music/sweater-weather.mp3",     photo:"photo/the-neighbourhood.jpg",   color:"#d4d4d8" },
+];
+
+
+const canvas = document.getElementById('bgCanvas');
+const ctx    = canvas.getContext('2d');
+let CW, CH;
+
+function resize(){
+  CW = canvas.width  = window.innerWidth;
+  CH = canvas.height = window.innerHeight;
+  initStars();
+}
+window.addEventListener('resize', resize);
+
+/* — Shooting stars — */
+let stars = [];
+function initStars(){
+  stars = Array.from({length:90}, () => makeStar());
+}
+function makeStar(forceActive){
+  return {
+    x: Math.random() * CW,
+    y: Math.random() * CH * 0.7,
+    len: Math.random() * 90 + 30,
+    speed: Math.random() * 2.5 + 0.8,
+    opacity: 0,
+    maxOp: Math.random() * 0.7 + 0.2,
+    size: Math.random() * 1.2 + 0.3,
+    angle: (Math.PI / 4) + (Math.random() - 0.5) * 0.3,
+    phase: forceActive ? 'in' : (Math.random() < 0.1 ? 'in' : 'wait'),
+    waitTimer: Math.random() * 400,
+    tail: [],
+  };
+}
+
+/* — Wave colors — */
+let wR=232, wG=255, wB=90;
+let wT = 0;
+
+function drawFrame(ts){
+  wT = ts * 0.00042;
+  ctx.clearRect(0, 0, CW, CH);
+
+  /* — Draw static tiny dot stars — */
+  ctx.save();
+  for(let i=0;i<180;i++){
+    // deterministic "random" using index as seed
+    const sx = ((i * 7919) % CW);
+    const sy = ((i * 6271) % (CH * 0.75));
+    const br = 0.1 + (Math.sin(ts*0.001 + i) * 0.5 + 0.5) * 0.35;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 0.7, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${br})`;
+    ctx.fill();
+  }
+  ctx.restore();
+
+  /* — Shooting stars — */
+  stars.forEach((s, i) => {
+    if(s.phase === 'wait'){
+      s.waitTimer--;
+      if(s.waitTimer <= 0){ s.phase = 'in'; s.opacity = 0; }
+      return;
+    }
+
+    // Move
+    const dx = Math.cos(s.angle) * s.speed;
+    const dy = Math.sin(s.angle) * s.speed;
+    s.x += dx; s.y += dy;
+    s.tail.push({x: s.x, y: s.y});
+    if(s.tail.length > s.len) s.tail.shift();
+
+    // Fade in/out
+    if(s.phase === 'in'){ s.opacity += 0.04; if(s.opacity >= s.maxOp) s.phase = 'out'; }
+    else { s.opacity -= 0.018; }
+
+    if(s.opacity <= 0 || s.x > CW + 100 || s.y > CH + 100){
+      stars[i] = makeStar(false);
+      stars[i].waitTimer = Math.random() * 300 + 100;
+      return;
+    }
+
+    // Draw tail
+    if(s.tail.length < 2) return;
+    const grad = ctx.createLinearGradient(
+      s.tail[0].x, s.tail[0].y,
+      s.tail[s.tail.length-1].x, s.tail[s.tail.length-1].y
+    );
+    grad.addColorStop(0, `rgba(255,255,255,0)`);
+    grad.addColorStop(0.6, `rgba(255,255,255,${s.opacity * 0.5})`);
+    grad.addColorStop(1, `rgba(255,255,255,${s.opacity})`);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(s.tail[0].x, s.tail[0].y);
+    for(let j=1;j<s.tail.length;j++) ctx.lineTo(s.tail[j].x, s.tail[j].y);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = s.size;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = `rgba(255,255,255,${s.opacity * 0.6})`;
+    ctx.shadowBlur = 4;
+    ctx.stroke();
+    // head glow
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size * 1.5, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${s.opacity})`;
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.restore();
+  });
+
+  /* — Waves at bottom — */
+  const waveLayers = [
+    { amp:42, freq:0.003,  spd:0.55, yR:0.74, alpha:0.16, lw:1.5 },
+    { amp:30, freq:0.005,  spd:0.90, yR:0.82, alpha:0.10, lw:1.0 },
+    { amp:55, freq:0.0018, spd:0.38, yR:0.64, alpha:0.08, lw:1.0 },
+    { amp:22, freq:0.007,  spd:1.20, yR:0.90, alpha:0.07, lw:0.7 },
+  ];
+  waveLayers.forEach((w, li) => {
+    const baseY = CH * w.yR;
+    ctx.beginPath();
+    ctx.moveTo(0, baseY);
+    for(let x=0; x<=CW; x+=3){
+      const y = baseY
+        + Math.sin(x * w.freq + wT * w.spd) * w.amp
+        + Math.sin(x * w.freq * 1.9 + wT * w.spd * 1.4 + li * 0.8) * (w.amp * 0.42);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(CW, CH); ctx.lineTo(0, CH); ctx.closePath();
+    const grd = ctx.createLinearGradient(0, baseY - w.amp, 0, CH);
+    grd.addColorStop(0, `rgba(${wR},${wG},${wB},${w.alpha})`);
+    grd.addColorStop(1, `rgba(${wR},${wG},${wB},0)`);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${wR},${wG},${wB},${w.alpha * 2})`;
+    ctx.lineWidth = w.lw;
+    ctx.stroke();
+  });
+
+  requestAnimationFrame(drawFrame);
+}
+resize();
+requestAnimationFrame(drawFrame);
+
+/* ══════════════════════════════════
+   THEME PER TRACK
+══════════════════════════════════ */
+function applyTheme(hex, photoUrl){
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  document.documentElement.style.setProperty('--ac', hex);
+  document.documentElement.style.setProperty('--ac-rgb', `${r},${g},${b}`);
+  document.documentElement.style.setProperty('--glow', `rgba(${r},${g},${b},0.22)`);
+  wR=r; wG=g; wB=b;
+
+  // BG photo swap with cross-fade
+  const bg = document.getElementById('bgPhoto');
+  if(photoUrl){
+    const tmp = new Image();
+    tmp.onload = () => {
+      bg.style.backgroundImage = `url('${photoUrl}')`;
+      bg.style.opacity = '0';
+      void bg.offsetWidth;
+      bg.style.opacity = '1';
+      bg.className = 'visible';
+    };
+    tmp.src = photoUrl;
+  } else {
+    bg.style.opacity = '0';
+    bg.className = '';
+  }
+
+  const pb = document.getElementById('playBtn');
+  pb.style.background = hex;
+  pb.style.color = isLight(r,g,b)?'#000':'#fff';
+  pb.style.boxShadow = `0 4px 24px rgba(${r},${g},${b},0.45)`;
+  document.querySelector('.brand em').style.color = hex;
+  document.querySelector('.hdr-dot').style.background = hex;
+}
+function isLight(r,g,b){ return (0.299*r+0.587*g+0.114*b)>145; }
+
+/* ══════════════════════════════════
+   LRC PARSER
+══════════════════════════════════ */
+function parseLRC(raw){
+  const result=[];
+  raw.split('\n').forEach(line=>{
+    const re=/\[(\d{2}):(\d{2})\.(\d{2,3})\]/g; const times=[]; let m;
+    while((m=re.exec(line))!==null)
+      times.push(+m[1]*60 + +m[2] + +m[3]/(m[3].length===3?1000:100));
+    const text=line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g,'').trim();
+    if(text&&times.length) times.forEach(t=>result.push({time:t,text}));
+  });
+  return result.sort((a,b)=>a.time-b.time);
+}
+
+/* ══════════════════════════════════
+   FETCH LYRICS — dengan fallback
+   Saat buka lewat file:// browser
+   blokir fetch ke lrclib.net.
+   Harus pakai Live Server / hosting!
+══════════════════════════════════ */
+let lyrics=[], activeLineIdx=-1;
+async function loadLyrics(title, artist){
+  const inner = document.getElementById('lyricsInner');
+  const src   = document.getElementById('lyricsSrc');
+  lyrics=[]; activeLineIdx=-1;
+  src.textContent='...'; src.className='lyrics-status';
+  inner.innerHTML=`<div class="lyrics-loading"><div class="spinner"></div>Mencari lirik…</div>`;
+
+  // Cek apakah buka via file:// — kalau iya, langsung kasih tahu user
+  if(location.protocol === 'file:'){
+    inner.innerHTML=`<div class="lyrics-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Lirik butuh Live Server<br>
+      <span style="font-size:11px;color:#555;font-family:var(--font-mono)">
+        Buka lewat VSCode Live Server<br>atau hosting agar lirik muncul
+      </span>
+    </div>`;
+    src.textContent='file://'; src.className='lyrics-status';
+    return;
+  }
+
+  try{
+    // Coba dengan judul + artis dulu
+    let res = await fetch(
+      `https://lrclib.net/api/get?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    // Kalau tidak ketemu, coba search
+    if(!res.ok || (await res.clone().json()).statusCode === 404){
+      const searchRes = await fetch(
+        `https://lrclib.net/api/search?q=${encodeURIComponent(title+' '+artist)}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      const searchData = await searchRes.json();
+      if(searchData && searchData.length > 0){
+        const best = searchData.find(d=>d.syncedLyrics) || searchData[0];
+        showLyrics(best, inner, src);
+        return;
+      }
+      throw new Error('not found');
+    }
+    const data = await res.json();
+    showLyrics(data, inner, src);
+  } catch(e){
+    inner.innerHTML=`<div class="lyrics-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Lirik tidak ditemukan
+    </div>`;
+    src.textContent='—'; src.className='lyrics-status';
+  }
+}
+
+function showLyrics(data, inner, src){
+  if(data.syncedLyrics){
+    lyrics=parseLRC(data.syncedLyrics);
+    inner.innerHTML=lyrics.map((l,i)=>
+      `<div class="lyric-line" id="ll${i}" onclick="seekLine(${i})">${escHtml(l.text)}</div>`
+    ).join('');
+    src.textContent='✓ synced'; src.className='lyrics-status found';
+  } else if(data.plainLyrics){
+    inner.innerHTML=`<div style="font-size:14px;line-height:2.3;color:rgba(255,255,255,0.22);white-space:pre-wrap;text-align:center;font-weight:500;padding:0 4px">${escHtml(data.plainLyrics)}</div>`;
+    src.textContent='plain'; src.className='lyrics-status';
+  } else {
+    inner.innerHTML=`<div class="lyrics-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Lirik tidak ditemukan</div>`;
+    src.textContent='—'; src.className='lyrics-status';
+  }
+}
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function updateLyrics(t){
+  if(!lyrics.length) return;
+  let idx=-1;
+  for(let i=0;i<lyrics.length;i++){ if(lyrics[i].time<=t) idx=i; else break; }
+  if(idx===activeLineIdx) return;
+  lyrics.forEach((_,i)=>{
+    const e=document.getElementById('ll'+i); if(!e) return;
+    if(i<idx-1)                   e.className='lyric-line past';
+    else if(i===idx-1||i===idx+1) e.className='lyric-line near';
+    else if(i===idx)              e.className='lyric-line active';
+    else                          e.className='lyric-line';
+  });
+  if(idx>=0){ const el=document.getElementById('ll'+idx); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
+  activeLineIdx=idx;
+}
+function seekLine(i){
+  audio.currentTime=lyrics[i].time;
+  if(!isPlaying){audio.play();isPlaying=true;updateIcon();renderPlaylist();}
+}
+
+/* ══════════════════════════════════
+   PLAYER
+══════════════════════════════════ */
+let current=0, isPlaying=false, looping=false, shuffling=false;
+const audio=document.getElementById('audioEl');
+
+function loadTrack(idx, play=true){
+  current=idx;
+  const t=tracks[idx];
+  audio.src=t.file;
+  audio.volume=document.getElementById('volSlider').value/100;
+
+  const titleEl=document.getElementById('npTitle');
+  titleEl.classList.remove('flash'); void titleEl.offsetWidth; titleEl.classList.add('flash');
+  titleEl.textContent=t.title;
+  document.getElementById('npArtist').textContent=t.artist;
+
+  const artImg=document.getElementById('artImg');
+  const artPlaceholder=document.getElementById('artPlaceholder');
+  const albumArt=document.getElementById('albumArt');
+  if(t.photo){
+    artImg.src=t.photo;
+    artImg.onload=()=>{ artImg.className='loaded'; artPlaceholder.style.opacity='0'; albumArt.classList.add('has-photo'); };
+    artImg.onerror=()=>{ artImg.className=''; artPlaceholder.style.opacity='1'; albumArt.classList.remove('has-photo'); };
+  } else {
+    artImg.className=''; artImg.src='';
+    artPlaceholder.style.opacity='1'; albumArt.classList.remove('has-photo');
+  }
+
+  applyTheme(t.color||'#e8ff5a', t.photo||null);
+  document.getElementById('progFill').style.width='0%';
+  document.getElementById('curTime').textContent='0:00';
+  loadLyrics(t.title, t.artist);
+  renderPlaylist();
+  if(play) audio.play().then(()=>{ isPlaying=true; updateIcon(); albumArt.classList.add('playing'); renderPlaylist(); }).catch(()=>{});
+}
+
+function togglePlay(){
+  const aa=document.getElementById('albumArt');
+  if(isPlaying){ audio.pause(); isPlaying=false; aa.classList.remove('playing'); }
+  else { audio.play(); isPlaying=true; aa.classList.add('playing'); }
+  updateIcon(); renderPlaylist();
+}
+function prevTrack(){ loadTrack(shuffling?rnd():(current-1+tracks.length)%tracks.length); }
+function nextTrack(){ loadTrack(shuffling?rnd():(current+1)%tracks.length); }
+function toggleLoop(){ looping=!looping; audio.loop=looping; document.getElementById('loopBtn').classList.toggle('on',looping); }
+function toggleShuffle(){ shuffling=!shuffling; document.getElementById('shuffleBtn').classList.toggle('on',shuffling); }
+function rnd(){ return Math.floor(Math.random()*tracks.length); }
+function updateIcon(){ document.getElementById('playIcon').innerHTML=isPlaying?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<path d="M8 5v14l11-7z"/>'; }
+function fmt(s){ if(isNaN(s))return'0:00'; return Math.floor(s/60)+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60); }
+
+audio.addEventListener('timeupdate',()=>{
+  if(!audio.duration) return;
+  const p=(audio.currentTime/audio.duration)*100;
+  document.getElementById('progFill').style.width=p+'%';
+  document.getElementById('curTime').textContent=fmt(audio.currentTime);
+  document.getElementById('totTime').textContent=fmt(audio.duration);
+  updateLyrics(audio.currentTime);
+});
+audio.addEventListener('ended',()=>{ if(!looping) nextTrack(); });
+document.getElementById('progressTrack').addEventListener('click',e=>{
+  if(!audio.duration) return;
+  const r=e.currentTarget.getBoundingClientRect();
+  audio.currentTime=((e.clientX-r.left)/r.width)*audio.duration;
+});
+document.getElementById('volSlider').addEventListener('input',e=>{
+  audio.volume=e.target.value/100;
+  e.target.style.background=`linear-gradient(to right,var(--ac2) ${e.target.value}%,rgba(255,255,255,0.1) ${e.target.value}%)`;
+});
+
+/* ══════════════════════════════════
+   RENDER PLAYLIST
+══════════════════════════════════ */
+function renderPlaylist(){
+  document.getElementById('trackCount').textContent=tracks.length+' lagu';
+  document.getElementById('playlistEl').innerHTML=tracks.map((t,i)=>`
+    <div class="track-row ${i===current?'playing':''}" onclick="loadTrack(${i})">
+      <div class="track-num">${i===current&&isPlaying
+        ?`<div class="eq-anim"><div class="eq-b"></div><div class="eq-b"></div><div class="eq-b"></div></div>`
+        :`<span>${i+1}</span>`}
+      </div>
+      <div class="track-thumb-mini">
+        ${t.photo?`<img src="${t.photo}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:``}
+        <div class="no-thumb" ${t.photo?'style="display:none"':''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm12 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
+        </div>
+      </div>
+      <div class="track-info">
+        <div class="t-name">${t.title}</div>
+        <div class="t-artist">${t.artist}</div>
+      </div>
+      <div class="t-dur">${t.duration||'—'}</div>
+    </div>`).join('');
+}
+
+tracks.forEach((t,i)=>{
+  const a=new Audio(t.file);
+  a.addEventListener('loadedmetadata',()=>{ tracks[i].duration=fmt(a.duration); renderPlaylist(); });
+});
+
+loadTrack(0,false);
+renderPlaylist();
+</script>
+</body>
+</html>
